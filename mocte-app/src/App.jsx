@@ -1,34 +1,59 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useMemo } from 'react'
+import GradientBlinds from './GradientBlinds'
+import GridMotion from './GridMotion'
 import './App.css'
 
+const LETTERS = ['M', 'Ø', 'C', 'T', 'E']
+
 function App() {
-  const [count, setCount] = useState(0)
+  const letterDelays = useMemo(
+    () => LETTERS.map(() => Math.random() * 2.5),
+    []
+  )
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="page-wrapper">
+      <GridMotion gradientColor="black" />
+      <div className="gradient-blinds-backdrop">
+        <GradientBlinds
+          gradientColors={['#000000', '#ffffff']}
+          angle={30}
+          noise={0.3}
+          blindCount={12}
+          blindMinWidth={50}
+          spotlightRadius={0.4}
+          spotlightSoftness={1}
+          spotlightOpacity={0.7}
+          mouseDampening={0.15}
+          distortAmount={0}
+          shineDirection="left"
+          mixBlendMode="lighten"
+        />
       </div>
-      <h1>Vite + React</h1>
+      <div className="page-content">
+      <nav className="navbar">
+        <a href="#contact" className="nav-link">Contact us</a>
+        <button type="button" className="nav-button">Preorder</button>
+      </nav>
+      <div className="center-content">
+      <h1 className="title-mocte">
+        {LETTERS.map((letter, i) => (
+          <span
+            key={i}
+            className="title-letter"
+            style={{ animationDelay: `${letterDelays[i]}s` }}
+          >
+            {letter}
+          </span>
+        ))}
+      </h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+        <p>reimagining ancient traditions to our present</p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+      </div>
+      <p className="coming-soon">coming soon...</p>
+      </div>
+    </div>
   )
 }
 
