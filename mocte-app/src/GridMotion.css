@@ -3,7 +3,7 @@
   inset: 0;
   z-index: 200;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .grid-motion-blur-layer {
@@ -18,13 +18,14 @@
 .grid-motion-overlay.noscroll {
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .grid-motion-overlay .intro {
   width: 100%;
   height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: visible;
   position: relative;
   display: flex;
   align-items: center;
@@ -44,17 +45,21 @@
 }
 
 .grid-motion-overlay .gridMotion-container {
-  gap: 1rem;
+  --grid-gap: 0.5rem;
+  --square-size: calc(((100vh - (3 * var(--grid-gap))) / 4) * 1.35);
+  gap: var(--grid-gap);
   flex: none;
   position: relative;
-  width: 150vw;
-  height: 150vh;
+  width: calc(7 * var(--square-size) + 6 * var(--grid-gap));
+  height: calc(4 * var(--square-size) + 3 * var(--grid-gap));
   display: grid;
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-rows: repeat(4, var(--square-size));
   grid-template-columns: 100%;
-  transform: rotate(-15deg);
+  transform: rotate(-15deg) translateY(-12%);
   transform-origin: center center;
   z-index: 2;
+  overflow: visible;
+  margin: auto;
 }
 
 .grid-motion-overlay .row {
@@ -68,33 +73,51 @@
   display: flex;
   gap: 0;
   grid-template-columns: unset;
+  overflow: hidden;
+  min-height: 0;
+  width: 100%;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .grid-motion-overlay .row__left,
 .grid-motion-overlay .row__right {
   display: grid;
-  gap: 1rem;
+  gap: var(--grid-gap);
   will-change: transform, filter;
+  align-items: stretch;
+  justify-items: stretch;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .grid-motion-overlay .row__left {
-  flex: 4;
-  grid-template-columns: repeat(4, 1fr);
-  margin-right: 0.5rem;
+  flex: none;
+  width: calc(4 * var(--square-size) + 3 * var(--grid-gap));
+  grid-template-columns: repeat(4, var(--square-size));
+  grid-template-rows: var(--square-size);
+  margin-right: calc(var(--grid-gap) / 2);
 }
 
 .grid-motion-overlay .row__right {
-  flex: 3;
-  grid-template-columns: repeat(3, 1fr);
-  margin-left: 0.5rem;
+  flex: none;
+  width: calc(3 * var(--square-size) + 2 * var(--grid-gap));
+  grid-template-columns: repeat(3, var(--square-size));
+  grid-template-rows: var(--square-size);
+  margin-left: calc(var(--grid-gap) / 2);
 }
 
 .grid-motion-overlay .row__item {
   position: relative;
+  width: var(--square-size);
+  height: var(--square-size);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .grid-motion-overlay .row__item-inner {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -110,6 +133,8 @@
 .grid-motion-overlay .row__item-img {
   width: 100%;
   height: 100%;
+  min-width: 100%;
+  min-height: 100%;
   background-size: cover;
   background-position: 50% 50%;
   position: absolute;

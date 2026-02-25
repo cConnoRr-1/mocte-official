@@ -32,8 +32,8 @@ function App() {
       </div>
       <div className="page-content">
       <nav className="navbar">
-        <a href="#contact" className="nav-link">Contact us</a>
-        <button type="button" className="nav-button">Preorder</button>
+        <a href="#contact" className="nav-link">CØNTACT US</a>
+        <button type="button" className="nav-button">PREØRDER</button>
       </nav>
       <div className="center-content">
       <h1 className="title-mocte">
@@ -51,7 +51,7 @@ function App() {
         <p>reimagining ancient traditions to our present</p>
       </div>
       </div>
-      <p className="coming-soon">coming soon...</p>
+      <p className="coming-soon">CØMING SØØN . . .</p>
       </div>
     </div>
   )
