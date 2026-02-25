@@ -31,27 +31,27 @@ function App() {
         />
       </div>
       <div className="page-content">
-      <nav className="navbar">
-        <a href="#contact" className="nav-link">CØNTACT US</a>
-        <button type="button" className="nav-button">PREØRDER</button>
-      </nav>
-      <div className="center-content">
-      <h1 className="title-mocte">
-        {LETTERS.map((letter, i) => (
-          <span
-            key={i}
-            className="title-letter"
-            style={{ animationDelay: `${letterDelays[i]}s` }}
-          >
-            {letter}
-          </span>
-        ))}
-      </h1>
-      <div className="card">
-        <p>reimagining ancient traditions to our present</p>
-      </div>
-      </div>
-      <p className="coming-soon">CØMING SØØN . . .</p>
+        <nav className="navbar">
+          <a href="#contact" className="nav-link">CØNTACT US</a>
+          <button type="button" className="nav-button">PREØRDER</button>
+        </nav>
+        <div className="center-content">
+          <h1 className="title-mocte">
+            {LETTERS.map((letter, i) => (
+              <span
+                key={i}
+                className="title-letter"
+                style={{ animationDelay: `${letterDelays[i]}s` }}
+              >
+                {letter}
+              </span>
+            ))}
+          </h1>
+          <div className="card">
+            <p>reimagining ancient traditions to our present</p>
+          </div>
+        </div>
+        <p className="coming-soon">CØMING SØØN . . .</p>
       </div>
     </div>
   )

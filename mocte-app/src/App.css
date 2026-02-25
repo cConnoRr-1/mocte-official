@@ -122,6 +122,8 @@
   font-size: clamp(0.75rem, 2.5vw, 1.4rem);
   margin: 0;
   text-transform: uppercase;
+  color: #fff;
+  mix-blend-mode: difference;
 }
 
 .read-the-docs {
