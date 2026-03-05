@@ -8,7 +8,7 @@ const COMING_SOON_LETTERS = ['C', 'Ø', 'M', 'I', 'N', 'G', ' ', 'S', 'Ø', 'Ø'
 const LETTER_TARGETS = [
   { left: 92, top: 92 },   // M → bottom right
   { left: 8, top: 8 },     // Ø → top left
-  { left: 50, top: 92 },   // C → bottom center (parallel to M, E), rotated 90°
+  { left: 50, top: 87 },   // C → bottom center, 5% higher when shrunk
   { left: 92, top: 8 },    // T → top right
   { left: 8, top: 92 },    // E → bottom left
 ]
@@ -33,6 +33,7 @@ function App() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [cExploded, setCExploded] = useState(false)
   const scrollRef = useRef(null)
+  const scrollBackRequestedRef = useRef(false)
 
   const updateProgress = useCallback(() => {
     const el = scrollRef.current
@@ -48,6 +49,30 @@ function App() {
     if (!cExploded) return
     const id = window.setTimeout(() => setShowComingSoonTitle(true), 3000)
     return () => clearTimeout(id)
+  }, [cExploded])
+
+  const goHome = useCallback(() => {
+    scrollBackRequestedRef.current = true
+    setCExploded(false)
+    setShowComingSoonTitle(false)
+  }, [])
+
+  useEffect(() => {
+    if (!cExploded && scrollBackRequestedRef.current) {
+      scrollBackRequestedRef.current = false
+      const el = scrollRef.current
+      if (!el) return
+      const startTop = el.scrollTop
+      const duration = 800
+      const start = performance.now()
+      const tick = (now) => {
+        const t = Math.min((now - start) / duration, 1)
+        const ease = 1 - (1 - t) * (1 - t)
+        el.scrollTop = startTop * (1 - ease)
+        if (t < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }
   }, [cExploded])
 
   const comingSoonFlickerParams = useMemo(
@@ -102,7 +127,6 @@ function App() {
             sensitivity={0.55}
             lineThickness={1}
             linesColor="#7FDBDA"
-            gridScale={0.1}
             scanColor="#FFEB3B"
             scanOpacity={0.4}
             enablePost
@@ -127,18 +151,29 @@ function App() {
                 const start = LETTER_STARTS[i]
                 const end = LETTER_TARGETS[i]
                 const isC = i === 2
+                const isO = i === 1
                 const left = lerp(start.left, end.left, letterPhase)
                 const top = lerp(start.top, end.top, letterPhase)
-                const scale = lerp(1, LETTER_SCALE_END, letterPhase)
+                const scale = isC ? lerp(1, LETTER_SCALE_END + 0.05, letterPhase) : lerp(1, LETTER_SCALE_END, letterPhase)
                 const rotate = isC ? letterPhase * 90 : 0
                 const exploded = isC && cExploded
+                const clickableC = isC && t >= 1 && !cExploded
+                const clickableO = isO && t >= 1
                 return (
                   <span
                     key={i}
-                    role={isC && t >= 1 && !cExploded ? 'button' : undefined}
-                    tabIndex={isC && t >= 1 && !cExploded ? 0 : undefined}
-                    onClick={isC && t >= 1 && !cExploded ? () => setCExploded(true) : undefined}
-                    onKeyDown={isC && t >= 1 && !cExploded ? (e) => e.key === 'Enter' && setCExploded(true) : undefined}
+                    role={clickableC || clickableO ? 'button' : undefined}
+                    tabIndex={clickableC || clickableO ? 0 : undefined}
+                    onClick={
+                      clickableC ? () => setCExploded(true) : clickableO ? goHome : undefined
+                    }
+                    onKeyDown={
+                      clickableC
+                        ? (e) => e.key === 'Enter' && setCExploded(true)
+                        : clickableO
+                          ? (e) => e.key === 'Enter' && goHome()
+                          : undefined
+                    }
                     className={`title-letter title-letter--scroll${exploded ? ' title-letter--explode' : ''}`}
                     style={{
                       animationDelay: `${letterDelays[i]}s`,
@@ -146,8 +181,8 @@ function App() {
                       '--letter-top': `${top}%`,
                       '--letter-scale': scale,
                       '--letter-rotate': `${rotate}deg`,
-                      pointerEvents: isC && t >= 1 && !cExploded ? 'auto' : undefined,
-                      cursor: isC && t >= 1 && !cExploded ? 'pointer' : undefined,
+                      pointerEvents: clickableC || clickableO ? 'auto' : undefined,
+                      cursor: clickableC || clickableO ? 'pointer' : undefined,
                     }}
                   >
                     {letter}
@@ -186,7 +221,7 @@ function App() {
                 <span
                   key={i}
                   className="coming-soon-title__letter-wrap"
-                  style={{ animationDelay: `${i * 1}s` }}
+                  style={{ animationDelay: `${i * 0.7}s` }}
                   {...(letter === ' ' ? { 'data-space': true } : {})}
                 >
                   <span

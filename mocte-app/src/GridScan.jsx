@@ -39,6 +39,11 @@ varying vec2 vUv;
 
 uniform float uScanStarts[8];
 uniform float uScanCount;
+uniform float uWormAmplitude;
+uniform float uWormFreq;
+uniform float uWormSpeed;
+uniform float uWormFormScale;
+uniform float uLeftRightExpand;
 
 const int MAX_SCANS = 8;
 
@@ -70,10 +75,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec2 gridUV = vec2(0.0);
 
   float hitIsY = 1.0;
+    float vertexWaveAmp = uWormAmplitude * gridScale * 0.5;
+    float leftRightScale = clamp(uLeftRightExpand, 0.0, 1.0);
     for (int i = 0; i < 4; i++)
     {
         float isY = float(i < 2);
-        float pos = mix(-0.2, 0.2, float(i)) * isY + mix(-0.5, 0.5, float(i - 2)) * (1.0 - isY);
+        float pos = mix(-0.2, 0.2, float(i)) * isY + mix(-0.5, 0.5, float(i - 2)) * (1.0 - isY) * leftRightScale;
+        float phase = float(i) * 1.5708;
+        pos += sin(iTime * uWormSpeed + phase) * vertexWaveAmp;
         float num = pos - (isY * ro.y + (1.0 - isY) * ro.x);
         float den = isY * rd.y + (1.0 - isY) * rd.x;
         float t = num / den;
@@ -83,13 +92,16 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         h.xy += skew * 0.15 * depthBoost;
 
     bool use = t > 0.0 && t < minT;
-    gridUV = use ? mix(h.zy, h.xz, isY) / gridScale : gridUV;
     minT = use ? t : minT;
     hitIsY = use ? isY : hitIsY;
     }
 
     vec3 hit = ro + rd * minT;
     float dist = length(hit - ro);
+
+    float formWave = sin(hit.x * uWormFreq + iTime * uWormSpeed) * uWormAmplitude * uWormFormScale;
+    hit.y += formWave * (1.0 - hitIsY);
+    gridUV = (hitIsY > 0.5 ? hit.zy : hit.xz) / gridScale;
 
   float jitterAmt = clamp(uLineJitter, 0.0, 1.0);
   if (jitterAmt > 0.0) {
@@ -99,6 +111,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     ) * (0.15 * jitterAmt);
     gridUV += j;
   }
+  float wormY = sin(gridUV.x * uWormFreq + iTime * uWormSpeed) * uWormAmplitude * (1.0 - hitIsY);
+  gridUV.y += wormY;
   float fx = fract(gridUV.x);
   float fy = fract(gridUV.y);
   float ax = min(fx, 1.0 - fx);
@@ -146,6 +160,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     ) * (0.15 * jitterAmt);
     gridUV2 += j2;
   }
+  float wormY2 = sin(gridUV2.x * uWormFreq + iTime * uWormSpeed) * uWormAmplitude * (1.0 - hitIsY);
+  gridUV2.y += wormY2;
   float fx2 = fract(gridUV2.x);
   float fy2 = fract(gridUV2.y);
   float ax2 = min(fx2, 1.0 - fx2);
@@ -181,8 +197,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
   }
     float altMask = max(lineX2, lineY2);
 
-    float edgeDistX = min(abs(hit.x - (-0.5)), abs(hit.x - 0.5));
-    float edgeDistY = min(abs(hit.y - (-0.2)), abs(hit.y - 0.2));
+    float vWaveAmp = uWormAmplitude * gridScale * 0.5;
+    float leftBound = -0.5 * leftRightScale + sin(iTime * uWormSpeed + 3.14159) * vWaveAmp;
+    float rightBound = 0.5 * leftRightScale + sin(iTime * uWormSpeed + 4.71239) * vWaveAmp;
+    float bottomBound = -0.2 + sin(iTime * uWormSpeed + 0.0) * vWaveAmp;
+    float topBound = 0.2 + sin(iTime * uWormSpeed + 1.5708) * vWaveAmp;
+    float edgeDistX = min(abs(hit.x - leftBound), abs(hit.x - rightBound));
+    float edgeDistY = min(abs(hit.y - bottomBound), abs(hit.y - topBound));
     float edgeDist = mix(edgeDistY, edgeDistX, hitIsY);
     float edgeGate = 1.0 - smoothstep(gridScale * 0.5, gridScale * 2.0, edgeDist);
     altMask *= edgeGate;
@@ -211,8 +232,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
       float t2 = mod(max(0.0, uScanTime - del), 2.0 * dur);
       phase = (t2 < dur) ? (t2 / dur) : (1.0 - (t2 - dur) / dur);
     }
+    float scanZWiggle = sin(hit.x * uWormFreq + iTime * uWormSpeed) * uWormAmplitude * 0.35;
     float scanZ = phase * scanZMax;
-    float dz = abs(hit.z - scanZ);
+    float scanZEff = scanZ + scanZWiggle;
+    float dz = abs(hit.z - scanZEff);
     float lineBand = exp(-0.5 * (dz * dz) / (sigma * sigma));
     float taper = clamp(uPhaseTaper, 0.0, 0.49);
     float headW = taper;
@@ -226,6 +249,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     combinedAura += (auraBand * 0.25) * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
 
     for (int i = 0; i < MAX_SCANS; i++) {
+      float scanWiggleI = sin(hit.x * uWormFreq + iTime * uWormSpeed) * uWormAmplitude * 0.35;
       if (float(i) >= uScanCount) break;
       float tActiveI = iTime - uScanStarts[i];
       float phaseI = clamp(tActiveI / dur, 0.0, 1.0);
@@ -235,7 +259,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         phaseI = (phaseI < 0.5) ? (phaseI * 2.0) : (1.0 - (phaseI - 0.5) * 2.0);
       }
       float scanZI = phaseI * scanZMax;
-      float dzI = abs(hit.z - scanZI);
+      float scanZEffI = scanZI + scanWiggleI;
+      float dzI = abs(hit.z - scanZEffI);
       float lineBandI = exp(-0.5 * (dzI * dzI) / (sigma * sigma));
       float headFadeI = smoother01(0.0, headW, phaseI);
       float tailFadeI = 1.0 - smoother01(1.0 - tailW, 1.0, phaseI);
@@ -359,6 +384,10 @@ export default function GridScan({
   snapBackDelay = 250,
   scrollProgress = 0,
   launchTriggered = false,
+  wormAmplitude = 0.22,
+  wormFreq = 2.2,
+  wormSpeed = 1.4,
+  wormFormScale = 0.14,
   className,
   style
 }) {
@@ -373,7 +402,7 @@ export default function GridScan({
   useEffect(() => {
     if (!launchTriggered) return
     launchStartRef.current = performance.now()
-    const duration = 900
+    const duration = 1300
     let rafId
     const tick = () => {
       const elapsed = performance.now() - launchStartRef.current
@@ -533,7 +562,12 @@ export default function GridScan({
       uScanTime: { value: 0 },
       uFadeStrength: { value: fadeStrength },
       uScanStarts: { value: new Array(MAX_SCANS).fill(0) },
-      uScanCount: { value: 0 }
+      uScanCount: { value: 0 },
+      uWormAmplitude: { value: wormAmplitude },
+      uWormFreq: { value: wormFreq },
+      uWormSpeed: { value: wormSpeed },
+      uWormFormScale: { value: wormFormScale },
+      uLeftRightExpand: { value: 0.3 + 0.7 * progress }
     }
 
     const material = new THREE.ShaderMaterial({
@@ -700,6 +734,14 @@ export default function GridScan({
     if (chromaRef.current) {
       chromaRef.current.offset.set(effectiveChromaticAberration, effectiveChromaticAberration)
     }
+    if (materialRef.current) {
+      const u = materialRef.current.uniforms
+      u.uWormAmplitude.value = wormAmplitude
+      u.uWormFreq.value = wormFreq
+      u.uWormSpeed.value = wormSpeed
+      u.uWormFormScale.value = wormFormScale
+      u.uLeftRightExpand.value = 0.3 + 0.7 * Math.max(0, Math.min(1, scrollProgress))
+    }
   }, [
     scrollProgress,
     effectiveLineThickness,
@@ -720,7 +762,11 @@ export default function GridScan({
     scanPhaseTaper,
     effectiveScanDuration,
     effectiveScanDelay,
-    fadeStrength
+    fadeStrength,
+    wormAmplitude,
+    wormFreq,
+    wormSpeed,
+    wormFormScale
   ])
 
   return (
