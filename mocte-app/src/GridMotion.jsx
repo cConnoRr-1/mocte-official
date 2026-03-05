@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import './GridMotion.css'
 
@@ -35,7 +35,9 @@ const IMAGE_ITEMS = [
   'https://images.unsplash.com/photo-1748370987492-eb390a61dcda?q=80&w=3464&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
 ]
 
-const GridMotion = ({ items = [], gradientColor = 'black' }) => {
+const REVEAL_COMPLETE_THRESHOLD = 0.99
+
+const GridMotion = ({ items = [], gradientColor = 'black', onRevealComplete }) => {
   const gridRef = useRef(null)
   const blurRef = useRef(null)
   const rowLeftRefs = useRef([])
@@ -44,6 +46,8 @@ const GridMotion = ({ items = [], gradientColor = 'black' }) => {
   const smoothSlideRef = useRef(0)
   const shouldOpenFullyRef = useRef(false)
   const splitDelayEndRef = useRef(0)
+  const hasCalledRevealRef = useRef(false)
+  const [isRevealComplete, setIsRevealComplete] = useState(false)
 
   const totalItems = 28
   const combinedItems = (items && items.length > 0) ? items.slice(0, totalItems) : IMAGE_ITEMS.slice(0, totalItems)
@@ -78,6 +82,12 @@ const GridMotion = ({ items = [], gradientColor = 'black' }) => {
       smoothSlideRef.current += (targetSlide - smoothSlideRef.current) * 0.014
       const slideAmount = Math.min(smoothSlideRef.current, maxSlidePx)
       const progress = Math.min(slideAmount / maxSlidePx, 1)
+
+      if (progress >= REVEAL_COMPLETE_THRESHOLD && !hasCalledRevealRef.current) {
+        hasCalledRevealRef.current = true
+        onRevealComplete?.()
+        setIsRevealComplete(true)
+      }
 
       const blurAmount = 8 * (1 - progress)
       if (blurRef.current) {
@@ -136,7 +146,11 @@ const GridMotion = ({ items = [], gradientColor = 'black' }) => {
   }, [])
 
   return (
-    <div className="grid-motion-overlay noscroll" ref={gridRef}>
+    <div
+      className="grid-motion-overlay noscroll"
+      ref={gridRef}
+      style={{ pointerEvents: isRevealComplete ? 'none' : 'auto' }}
+    >
       <section
         className="intro"
       >

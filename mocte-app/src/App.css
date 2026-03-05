@@ -1,11 +1,39 @@
+.scroll-driver {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100vh;
+  width: 100%;
+  scroll-behavior: auto;
+}
+
+.scroll-spacer {
+  height: 500vh;
+  width: 100%;
+  pointer-events: none;
+}
+
 .page-wrapper {
-  position: relative;
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  pointer-events: none;
 }
 
-.gradient-blinds-backdrop {
+.page-wrapper .page-content {
+  pointer-events: none;
+}
+
+.page-wrapper .navbar,
+.page-wrapper .coming-soon,
+.page-wrapper .card,
+.page-wrapper .card * {
+  pointer-events: auto;
+}
+
+.gradient-blinds-backdrop,
+.gridscan-backdrop {
   position: fixed;
   inset: 0;
   width: 100%;
@@ -38,6 +66,12 @@
   pointer-events: none;
 }
 
+.center-content--scroll {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+}
+
 .navbar {
   position: fixed;
   top: 0;
@@ -48,6 +82,8 @@
   align-items: center;
   padding: 1rem 2rem;
   z-index: 100;
+  transition: transform 0.12s ease-out;
+  will-change: transform;
 }
 
 .nav-link {
@@ -94,9 +130,25 @@
   mix-blend-mode: difference;
 }
 
+.title-mocte--scroll {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: block;
+}
+
 .title-letter {
   display: inline-block;
   animation: letter-flicker 3.6s ease-in-out infinite;
+}
+
+.title-letter--scroll {
+  position: absolute;
+  left: var(--letter-left, 50%);
+  top: var(--letter-top, 50%);
+  transform: translate(-50%, -50%) rotate(var(--letter-rotate, 0deg)) scale(var(--letter-scale, 1));
+  transition: none;
+  will-change: left, top, transform;
 }
 
 @keyframes letter-flicker {
@@ -116,6 +168,12 @@
 
 .card {
   padding: 0.25rem 2em 2em;
+  transition: opacity 0.2s ease-out;
+}
+
+.card--scroll {
+  position: relative;
+  z-index: 5;
 }
 
 .card p {
@@ -138,4 +196,5 @@
   font-size: 1.44rem;
   color: #fff;
   opacity: 0.7;
+  transition: opacity 0.2s ease-out;
 }

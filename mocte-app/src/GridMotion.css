@@ -46,7 +46,7 @@
 
 .grid-motion-overlay .gridMotion-container {
   --grid-gap: 0.5rem;
-  --square-size: calc(((100vh - (3 * var(--grid-gap))) / 4) * 1.35);
+  --square-size: calc(((100vh - (3 * var(--grid-gap))) / 4) * 1.755);
   gap: var(--grid-gap);
   flex: none;
   position: relative;
