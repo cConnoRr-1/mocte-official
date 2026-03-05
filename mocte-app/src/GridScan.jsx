@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { EffectComposer, RenderPass, EffectPass, BloomEffect, ChromaticAberrationEffect } from 'postprocessing'
 import * as THREE from 'three'
 import './GridScan.css'
@@ -34,6 +34,7 @@ uniform float uPhaseTaper;
 uniform float uScanDuration;
 uniform float uScanDelay;
 uniform float uScanTime;
+uniform float uFadeStrength;
 varying vec2 vUv;
 
 uniform float uScanStarts[8];
@@ -65,7 +66,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec3 color = vec3(0.0);
   float minT = 1e20;
   float gridScale = max(1e-5, uGridScale);
-    float fadeStrength = 2.0;
+    float fadeStrength = max(0.0, uFadeStrength);
     vec2 gridUV = vec2(0.0);
 
   float hitIsY = 1.0;
@@ -192,7 +193,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
     float dur = max(0.05, uScanDuration);
     float del = max(0.0, uScanDelay);
-    float scanZMax = 2.0;
+    float scanZMax = 2.0 * 0.75;
     float widthScale = max(0.1, uScanGlow);
     float sigma = max(0.001, 0.18 * widthScale * uScanSoftness);
     float sigmaA = sigma * 2.0;
@@ -357,17 +358,45 @@ export default function GridScan({
   scanOnClick = false,
   snapBackDelay = 250,
   scrollProgress = 0,
+  launchTriggered = false,
   className,
   style
 }) {
   const progress = Math.max(0, Math.min(1, scrollProgress))
-  const effectiveGridScale = 0.02 + (0.5 - 0.02) * progress
-  const effectiveLineJitter = Math.max(0, Math.min(1, 0.9 * (effectiveGridScale - 0.02) / (0.5 - 0.02)))
-  const effectiveChromaticAberration = 0.01 * (effectiveGridScale - 0.02) / (0.5 - 0.02)
-  const effectiveLineThickness = 1 + 3 * (effectiveGridScale - 0.02) / (0.5 - 0.02)
+  const GRID_SCALE_MAX = 0.85
+  const GRID_SCALE_MIN = 0.02
+  const progressExp = progress ** 2
+  const baseGridScale = GRID_SCALE_MIN + (GRID_SCALE_MAX - GRID_SCALE_MIN) * progressExp
+  const [launchT, setLaunchT] = useState(0)
+  const launchStartRef = useRef(null)
+
+  useEffect(() => {
+    if (!launchTriggered) return
+    launchStartRef.current = performance.now()
+    const duration = 900
+    let rafId
+    const tick = () => {
+      const elapsed = performance.now() - launchStartRef.current
+      const t = Math.min(1, elapsed / duration)
+      setLaunchT(t)
+      if (t < 1) rafId = requestAnimationFrame(tick)
+    }
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [launchTriggered])
+
+  const effectiveGridScale = launchTriggered
+    ? GRID_SCALE_MAX * (1 - launchT)
+    : baseGridScale
+  const scaleForDerived = launchTriggered ? GRID_SCALE_MAX : baseGridScale
+  const effectiveLineJitter = Math.max(0, Math.min(1, 0.9 * (scaleForDerived - GRID_SCALE_MIN) / (GRID_SCALE_MAX - GRID_SCALE_MIN)))
+  const effectiveChromaticAberration = 0.01 * (scaleForDerived - GRID_SCALE_MIN) / (GRID_SCALE_MAX - GRID_SCALE_MIN)
+  const effectiveLineThickness = 1 + 3 * (scaleForDerived - GRID_SCALE_MIN) / (GRID_SCALE_MAX - GRID_SCALE_MIN)
   const effectiveScanDuration = 2.0
   const effectiveScanDelay = 2.0
-  const scanTravelSpeed = 0.5 + 12.0 * (effectiveGridScale - 0.02) / (0.5 - 0.02)
+  const baseScanTravelSpeed = 0.5 + 12.0 * (scaleForDerived - GRID_SCALE_MIN) / (GRID_SCALE_MAX - GRID_SCALE_MIN)
+  const scanTravelSpeed = launchTriggered ? baseScanTravelSpeed * (1 - launchT) : baseScanTravelSpeed
+  const fadeStrength = launchTriggered ? 0.55 * (1 - launchT) : 0.55
 
   const containerRef = useRef(null)
 
@@ -502,6 +531,7 @@ export default function GridScan({
       uScanDelay: { value: effectiveScanDelay },
       uScanDirection: { value: scanDirection === 'backward' ? 1 : scanDirection === 'pingpong' ? 2 : 0 },
       uScanTime: { value: 0 },
+      uFadeStrength: { value: fadeStrength },
       uScanStarts: { value: new Array(MAX_SCANS).fill(0) },
       uScanCount: { value: 0 }
     }
@@ -656,6 +686,7 @@ export default function GridScan({
       u.uScanGlow.value = scanGlow
       u.uScanOpacity.value = Math.max(0, Math.min(1, scanOpacity))
       u.uScanDirection.value = scanDirection === 'backward' ? 1 : scanDirection === 'pingpong' ? 2 : 0
+      u.uFadeStrength.value = fadeStrength
       u.uScanSoftness.value = scanSoftness
       u.uPhaseTaper.value = scanPhaseTaper
       u.uScanDuration.value = Math.max(0.05, effectiveScanDuration)
@@ -688,7 +719,8 @@ export default function GridScan({
     scanSoftness,
     scanPhaseTaper,
     effectiveScanDuration,
-    effectiveScanDelay
+    effectiveScanDelay,
+    fadeStrength
   ])
 
   return (

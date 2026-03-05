@@ -6,6 +6,10 @@
   scroll-behavior: auto;
 }
 
+.scroll-driver--locked {
+  overflow: hidden;
+}
+
 .scroll-spacer {
   height: 500vh;
   width: 100%;
@@ -19,7 +23,9 @@
   height: 100vh;
   overflow: hidden;
   pointer-events: none;
+  transform-origin: 50% 50%;
 }
+
 
 .page-wrapper .page-content {
   pointer-events: none;
@@ -40,6 +46,7 @@
   height: 100%;
   z-index: 0;
 }
+
 
 .page-content {
   position: relative;
@@ -151,18 +158,86 @@
   will-change: left, top, transform;
 }
 
+.title-letter--explode {
+  animation: letter-explode 0.45s ease-out forwards;
+  pointer-events: none !important;
+}
+
+@keyframes letter-explode {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) rotate(var(--letter-rotate, 0deg)) scale(var(--letter-scale, 1));
+  }
+  40% {
+    filter: blur(2px);
+    transform: translate(-50%, -50%) rotate(var(--letter-rotate, 0deg)) scale(calc(var(--letter-scale, 1) * 1.4));
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translate(-50%, -50%) rotate(var(--letter-rotate, 0deg)) scale(calc(var(--letter-scale, 1) * 2.2));
+  }
+}
+
 @keyframes letter-flicker {
-  0%, 85%, 100% {
+
+  0%,
+  85%,
+  100% {
     opacity: 1;
   }
+
   88% {
     opacity: 0.15;
   }
+
   92% {
     opacity: 1;
   }
+
   95% {
     opacity: 0.3;
+  }
+}
+
+/* CØMING SØØN title centered after launch — 1s delay, letter-by-letter, random flicker */
+.coming-soon-title {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.05em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.coming-soon-title__letter-wrap {
+  opacity: 0;
+  animation: coming-soon-letter-in 0.7s ease-out forwards;
+}
+
+.coming-soon-title__letter {
+  font-family: 'Acumin Pro Wide', sans-serif;
+  font-size: clamp(1.8rem, 7.2vw, 5.76rem);
+  font-weight: 700;
+  color: #fff;
+  mix-blend-mode: difference;
+  animation: letter-flicker 3.6s ease-in-out infinite;
+}
+
+.coming-soon-title__letter-wrap[data-space] {
+  min-width: 0.25em;
+}
+
+@keyframes coming-soon-letter-in {
+  to {
+    opacity: 1;
   }
 }
 
@@ -197,4 +272,51 @@
   color: #fff;
   opacity: 0.7;
   transition: opacity 0.2s ease-out;
+}
+
+/* Futuristic launch indicator — hovers above C at bottom center when scroll is complete */
+.launch-indicator {
+  position: fixed;
+  left: 50%;
+  top: 80%;
+  transform: translate(-50%, 0);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.35s ease-out;
+  pointer-events: none;
+  animation: launch-indicator-float 2.2s ease-in-out infinite;
+}
+
+@keyframes launch-indicator-float {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+
+.launch-indicator__label {
+  font-family: 'Acumin Pro Wide', system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  color: #7FDBDA;
+  text-shadow: 0 0 12px rgba(127, 219, 218, 0.6);
+  margin-bottom: 0.35rem;
+}
+
+.launch-indicator__line {
+  width: 1px;
+  height: 1.2rem;
+  background: linear-gradient(to bottom, #7FDBDA, rgba(127, 219, 218, 0.4));
+  box-shadow: 0 0 8px rgba(127, 219, 218, 0.5);
+}
+
+.launch-indicator__bracket {
+  width: 1rem;
+  height: 0.5rem;
+  margin-top: -1px;
+  border: 1px solid #7FDBDA;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 0 10px rgba(127, 219, 218, 0.4), inset 0 0 8px rgba(127, 219, 218, 0.1);
 }

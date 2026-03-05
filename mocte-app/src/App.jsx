@@ -3,6 +3,7 @@ import { GridScan, GridMotion } from './components'
 import './App.css'
 
 const LETTERS = ['M', 'Ø', 'C', 'T', 'E']
+const COMING_SOON_LETTERS = ['C', 'Ø', 'M', 'I', 'N', 'G', ' ', 'S', 'Ø', 'Ø', 'N']
 
 const LETTER_TARGETS = [
   { left: 92, top: 92 },   // M → bottom right
@@ -30,6 +31,7 @@ function App() {
     []
   )
   const [scrollProgress, setScrollProgress] = useState(0)
+  const [cExploded, setCExploded] = useState(false)
   const scrollRef = useRef(null)
 
   const updateProgress = useCallback(() => {
@@ -38,20 +40,45 @@ function App() {
     const { scrollTop, scrollHeight, clientHeight } = el
     const maxScroll = scrollHeight - clientHeight
     const progress = maxScroll <= 0 ? 0 : Math.min(1, scrollTop / maxScroll)
-    setScrollProgress(progress)
-  }, [])
+    setScrollProgress(cExploded ? 1 : progress)
+  }, [cExploded])
+
+  const [showComingSoonTitle, setShowComingSoonTitle] = useState(false)
+  useEffect(() => {
+    if (!cExploded) return
+    const id = window.setTimeout(() => setShowComingSoonTitle(true), 3000)
+    return () => clearTimeout(id)
+  }, [cExploded])
+
+  const comingSoonFlickerParams = useMemo(
+    () => COMING_SOON_LETTERS.map(() => ({
+      duration: 2.2 + Math.random() * 2.4,
+      delay: Math.random() * 2.5
+    })),
+    []
+  )
 
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    if (cExploded) {
+      el.scrollTop = el.scrollHeight - el.clientHeight
+    }
     updateProgress()
-    el.addEventListener('scroll', updateProgress, { passive: true })
+    const onScroll = () => {
+      if (cExploded) {
+        const maxScroll = el.scrollHeight - el.clientHeight
+        if (el.scrollTop < maxScroll) el.scrollTop = maxScroll
+      }
+      updateProgress()
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', updateProgress)
     return () => {
-      el.removeEventListener('scroll', updateProgress)
+      el.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', updateProgress)
     }
-  }, [updateProgress])
+  }, [updateProgress, cExploded])
 
   const t = scrollProgress
   const navTranslateY = t * -120
@@ -66,7 +93,7 @@ function App() {
       : Math.max(0, (1 - t) / (1 - SUBTEXT_PEAK))
 
   return (
-    <div className="scroll-driver" ref={scrollRef}>
+    <div className={`scroll-driver${cExploded ? ' scroll-driver--locked' : ''}`} ref={scrollRef}>
       <div className="scroll-spacer" aria-hidden="true" />
       <div className="page-wrapper">
         <GridMotion gradientColor="black" />
@@ -83,6 +110,7 @@ function App() {
             chromaticAberration={0.002}
             noiseIntensity={0.01}
             scrollProgress={t}
+            launchTriggered={cExploded}
           />
         </div>
         <div className="page-content">
@@ -103,16 +131,23 @@ function App() {
                 const top = lerp(start.top, end.top, letterPhase)
                 const scale = lerp(1, LETTER_SCALE_END, letterPhase)
                 const rotate = isC ? letterPhase * 90 : 0
+                const exploded = isC && cExploded
                 return (
                   <span
                     key={i}
-                    className="title-letter title-letter--scroll"
+                    role={isC && t >= 1 && !cExploded ? 'button' : undefined}
+                    tabIndex={isC && t >= 1 && !cExploded ? 0 : undefined}
+                    onClick={isC && t >= 1 && !cExploded ? () => setCExploded(true) : undefined}
+                    onKeyDown={isC && t >= 1 && !cExploded ? (e) => e.key === 'Enter' && setCExploded(true) : undefined}
+                    className={`title-letter title-letter--scroll${exploded ? ' title-letter--explode' : ''}`}
                     style={{
                       animationDelay: `${letterDelays[i]}s`,
                       '--letter-left': `${left}%`,
                       '--letter-top': `${top}%`,
                       '--letter-scale': scale,
                       '--letter-rotate': `${rotate}deg`,
+                      pointerEvents: isC && t >= 1 && !cExploded ? 'auto' : undefined,
+                      cursor: isC && t >= 1 && !cExploded ? 'pointer' : undefined,
                     }}
                   >
                     {letter}
@@ -133,6 +168,40 @@ function App() {
           >
             CØMING SØØN . . .
           </p>
+          <div
+            className="launch-indicator"
+            style={{
+              opacity: t >= 1 && !cExploded ? 1 : 0,
+              pointerEvents: t >= 1 ? 'auto' : 'none',
+            }}
+            aria-hidden={t < 1 || cExploded}
+          >
+            <span className="launch-indicator__label">LAUNCH</span>
+            <div className="launch-indicator__line" />
+            <div className="launch-indicator__bracket" />
+          </div>
+          {showComingSoonTitle && (
+            <div className="coming-soon-title" aria-live="polite">
+              {COMING_SOON_LETTERS.map((letter, i) => (
+                <span
+                  key={i}
+                  className="coming-soon-title__letter-wrap"
+                  style={{ animationDelay: `${i * 1}s` }}
+                  {...(letter === ' ' ? { 'data-space': true } : {})}
+                >
+                  <span
+                    className="title-letter coming-soon-title__letter"
+                    style={{
+                      animationDuration: `${comingSoonFlickerParams[i].duration}s`,
+                      animationDelay: `${comingSoonFlickerParams[i].delay}s`
+                    }}
+                  >
+                    {letter}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
